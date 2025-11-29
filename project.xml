@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+	
+	<meta title="UartVidPlay" package="nl.avans.uartvidplay" version="1.0.0" company="Avans" />
+	<app main="Main" path="Export" file="UartVidPlay" />
+	
+	<source path="Source" />
+	
+	<haxelib name="openfl" />
+	<haxelib name="hxvlc"/>
+	<haxelib name="hxSerial"/>
+
+	<section if="mac">
+		<haxedef name="MACOSX_VER" value="26.1"/>
+	</section>
+
+	<assets path="Assets" rename="assets" />
+	<window background="#000000" fps="60"/>
+</project>
