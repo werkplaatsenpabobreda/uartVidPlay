@@ -1,5 +1,6 @@
 package;
 
+import haxe.io.Path;
 import openfl.ui.Keyboard;
 import openfl.events.KeyboardEvent;
 import lime.system.System;
@@ -16,7 +17,6 @@ import hxSerial.Serial;
 import controllers.DataController;
 
 class Main extends Sprite {
-	
 	var serialObj:hxSerial.Serial;
 	var deviceList:Array<String> = [];
 	var storedPortPath:String;
@@ -26,15 +26,16 @@ class Main extends Sprite {
 	var serialLine:String;
 
 	var doVideoUpdate:Bool = false;
-	
+
 	var tagStartTime:Int = 0;
 	var tagTriggerDebounce:Int = 2000; // how long before a new tag can be scanned and trigger a Video
 	var currentTag:String;
 
-	//UI
+	// UI
 	var video:Video;
 	var statusText:TextField;
 
+	var ffmpegAvailable:Bool = false;
 
 	/** 
 	 *
@@ -125,6 +126,10 @@ class Main extends Sprite {
 	 */
 	function stage_onKeyDown(e:KeyboardEvent) {
 		switch (e.keyCode) {
+			case Keyboard.COMMA:
+				if(e.commandKey){
+					DataController.openConfigJson();
+				}
 			case Keyboard.D:
 				traceSerialDevices();
 		}
@@ -229,7 +234,6 @@ class Main extends Sprite {
 	 * parse serial data
 	 */
 	function parseSerial() {
-		
 		// TODO: THIS COULD BE HANDLED A LOT BETTER
 		if (serialConnected) {
 			var bytesAvailable = serialObj.available();
@@ -241,18 +245,16 @@ class Main extends Sprite {
 
 				// if there's a line feed?
 				if (serialBuffer.indexOf('\n') != -1) {
-
 					// is the newline at the end of the buffer?
 					var noBytesAfterNewline = serialBuffer.lastIndexOf('\n') == serialBuffer.length - 1;
 
 					// split lines
 					var lines:Array<String> = serialBuffer.split("\n");
-				
+
 					// microbit seems to be sending a space (char 32) filled buffer.
 					serialLine = StringTools.trim(lines[0]);
 
 					playVideoByTag(serialLine);
-
 				}
 			}
 		}
@@ -262,10 +264,11 @@ class Main extends Sprite {
 	 *
 	 */
 	private function playVideoByTag(tag:String) {
-		
-		if(DataController.waitUntilVideoFinished && video.isPlaying ) return;
-		
-		if(!DataController.retriggerTag && tag ==currentTag) return;
+		if (DataController.waitUntilVideoFinished && video.isPlaying)
+			return;
+
+		if (!DataController.retriggerTag && tag == currentTag)
+			return;
 
 		tag = tag.toUpperCase();
 		var millies = System.getTimer();
@@ -283,4 +286,6 @@ class Main extends Sprite {
 			tagStartTime = millies;
 		}
 	}
+
+
 }

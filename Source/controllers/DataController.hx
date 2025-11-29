@@ -8,6 +8,7 @@ import haxe.io.Path;
 import sys.FileSystem;
 import lime.system.System;
 #end
+import openfl.utils.Assets;
 
 class DataController {
 
@@ -34,6 +35,9 @@ class DataController {
 			} catch (e) {
                 trace('error loading config');
             }
+		}else{
+			data =Json.parse(Assets.getText('data/config.json'));
+			saveConfig();
 		}
 	}
 
@@ -44,4 +48,28 @@ class DataController {
 	}
 
 
+		/**
+	 * [Description]
+	 */
+	public static function openConfigJson() {
+		var jsonFile = Path.join([
+			Path.directory(lime.system.System.applicationStorageDirectory).toString(),
+			"config.json"
+		]);
+		if(FileSystem.exists(jsonFile)){
+			openFileOrDir(jsonFile);
+		}
+	}
+
+		/**
+	 * [Description]
+	 */
+	public static function openFileOrDir(path:String) {
+		// trace('openFileOrDir $path');
+		#if windows
+		Sys.command("start", ["explorer", path]);
+		#elseif (mac || linux || rpi)
+		Sys.command("open", [path]);
+		#end
+	}
 }
