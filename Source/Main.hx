@@ -1,5 +1,6 @@
 package;
 
+import openfl.display.StageDisplayState;
 import haxe.io.Path;
 import openfl.ui.Keyboard;
 import openfl.events.KeyboardEvent;
@@ -49,9 +50,14 @@ class Main extends Sprite {
 		stage.addEventListener(Event.RESIZE, stage_resize);
 		stage.addEventListener(KeyboardEvent.KEY_DOWN, stage_onKeyDown);
 
+
 		initUI();
 		initSerial();
 		initVideo();
+
+		if(DataController.data.fullscreen){
+			goFullScreen();
+		}
 	}
 
 	/**
@@ -75,7 +81,7 @@ class Main extends Sprite {
 		statusText.selectable = false;
 		statusText.mouseEnabled = false;
 		statusText.text = "";
-		addChild(statusText);
+		
 	}
 
 	/**
@@ -101,7 +107,6 @@ class Main extends Sprite {
 			doVideoUpdate = true;
 		});
 		addChild(video);
-		addChild(statusText);
 	}
 
 	/**
@@ -132,7 +137,12 @@ class Main extends Sprite {
 					DataController.openConfigJson();
 				}
 			case Keyboard.D:
-				traceSerialDevices();
+			case Keyboard.T:
+				if(contains(statusText)){
+					removeChild(statusText);
+				}else{
+					addChild(statusText);
+				}
 		}
 	}
 
@@ -142,7 +152,29 @@ class Main extends Sprite {
 	function stage_resize(e:Event){
 
 	}
-	
+	/**
+	 * 
+	 */
+	public function goFullScreen() {
+		trace('goFullScreen');
+		stage.displayState = StageDisplayState.FULL_SCREEN_INTERACTIVE;
+	}
+
+	/**
+	 * 
+	 */
+	public function leaveFullScreen() {
+		stage.displayState = StageDisplayState.NORMAL;
+	}
+
+	public function toggleFullScreen(){
+		if (stage.displayState != StageDisplayState.NORMAL) {
+			stage.displayState = StageDisplayState.NORMAL;
+		}else{
+			goFullScreen();
+		}
+	}
+
 	/**
 	 * output the index and paths of serial devices
 	 */
@@ -246,6 +278,7 @@ class Main extends Sprite {
 		if (serialConnected) {
 			var bytesAvailable = serialObj.available();
 			if (bytesAvailable > 0) {
+				//trace('bytesAvailable $bytesAvailable ');
 				serialBuffer += serialObj.readBytes(bytesAvailable).toString();
 				// remove any \r characters
 				serialBuffer = StringTools.replace(serialBuffer, "\r", "");
@@ -260,9 +293,12 @@ class Main extends Sprite {
 
 					// microbit seems to be sending a space (char 32) filled buffer.
 					serialLine = StringTools.trim(lines[0]);
-					
+					//trace(serialLine);
 					if(serialLine=="INITIALIZING" || serialLine=="READY"){
 						serialBuffer="";
+						if(serialLine=="READY"){
+							statusText.text = "READY, waiting for tag";
+						}
 					}else{
 						playVideoByTag(serialLine);
 						if(noBytesAfterNewline){
