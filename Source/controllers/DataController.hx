@@ -19,6 +19,9 @@ class DataController {
 	public static var retriggerTag:Bool = false;
 	public static var waitUntilVideoFinished:Bool = false;
 
+	/**
+	 * [Description]
+	 */
 	public static function loadConfig() {
 		jsonPath = haxe.io.Path.join([lime.system.System.applicationStorageDirectory, "config.json"]);
 		hasJsonFile = FileSystem.exists(jsonPath);
@@ -38,9 +41,15 @@ class DataController {
 		}else{
 			data =Json.parse(Assets.getText('data/config.json'));
 			saveConfig();
+			// there was no config.json.
+			// open the default copied from assets
+			openConfigJson();
 		}
 	}
 
+	/**
+	 * [Description]
+	 */
 	public static function saveConfig() {
 		try {
 			File.saveContent(jsonPath, Json.stringify(data));
@@ -48,7 +57,7 @@ class DataController {
 	}
 
 
-		/**
+	/**
 	 * [Description]
 	 */
 	public static function openConfigJson() {

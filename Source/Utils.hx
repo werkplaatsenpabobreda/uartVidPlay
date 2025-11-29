@@ -3,6 +3,7 @@ package;
 class Utils {
 
     public static var ffmpegAvailable:Bool = false;
+    
     /**
 	 * [Description]
 	 */

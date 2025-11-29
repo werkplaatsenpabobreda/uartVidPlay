@@ -48,23 +48,22 @@ class Main extends Sprite {
 		stage.addEventListener(Event.ENTER_FRAME, stage_onEnterFrame);
 		stage.addEventListener(KeyboardEvent.KEY_DOWN, stage_onKeyDown);
 
-		initText();
+		initUI();
 		initSerial();
 		initVideo();
 	}
 
 	/**
-	 *	
+	 * 
 	 */
 	private function initSerial():Void {
-		storedPortPath = haxe.io.Path.join([lime.system.System.applicationStorageDirectory, "port.txt"]);
 		connectSerialPortByIndex(DataController.data.portIndex);
 	}
 
 	/**
 	 * Create an instructions overlay
 	 */
-	private function initText():Void {
+	private function initUI():Void {
 		statusText = new TextField();
 		statusText.defaultTextFormat = new TextFormat("_sans", 11, 0xFFFFFF);
 		statusText.embedFonts = true;
@@ -79,7 +78,7 @@ class Main extends Sprite {
 	}
 
 	/**
-	 *	
+	 *	initialize (hxvlc) Video and events
 	 */
 	private function initVideo() {
 		video = new Video();
@@ -104,7 +103,7 @@ class Main extends Sprite {
 	}
 
 	/**
-	 *
+	 * Handle stage enterframe events
 	 */
 	private inline function stage_onEnterFrame(event:Event):Void {
 		parseSerial();
@@ -122,7 +121,7 @@ class Main extends Sprite {
 	}
 
 	/**
-	 *
+	 * Handle keydown events
 	 */
 	function stage_onKeyDown(e:KeyboardEvent) {
 		switch (e.keyCode) {
@@ -136,7 +135,7 @@ class Main extends Sprite {
 	}
 
 	/**
-	 *
+	 * output the index and paths of serial devices
 	 */
 	function traceSerialDevices() {
 		if (deviceList != null && deviceList.length > 0) {
@@ -147,14 +146,14 @@ class Main extends Sprite {
 	}
 
 	/** 
-	 *
+	 * window (re)gained focus
 	 */
 	private inline function stage_onActivate(event:Event):Void {
 		video?.resume();
 	}
 
 	/** 
-	 *
+	 * window lost focus
 	 */
 	private inline function stage_onDeactivate(event:Event):Void {
 		video?.pause();
@@ -218,7 +217,7 @@ class Main extends Sprite {
 	}
 
 	/**
-	 * Connect to the previous SerialPort if available
+	 *  Connect to the previous SerialPort if available
 	 */
 	function previousPort() {
 		if (deviceList != null) {
@@ -261,7 +260,7 @@ class Main extends Sprite {
 	}
 
 	/**
-	 *
+	 * play video associated with tag
 	 */
 	private function playVideoByTag(tag:String) {
 		if (DataController.waitUntilVideoFinished && video.isPlaying)
