@@ -46,6 +46,7 @@ class Main extends Sprite {
 		DataController.loadConfig();
 
 		stage.addEventListener(Event.ENTER_FRAME, stage_onEnterFrame);
+		stage.addEventListener(Event.RESIZE, stage_resize);
 		stage.addEventListener(KeyboardEvent.KEY_DOWN, stage_onKeyDown);
 
 		initUI();
@@ -69,7 +70,7 @@ class Main extends Sprite {
 		statusText.embedFonts = true;
 		statusText.antiAliasType = AntiAliasType.ADVANCED;
 		statusText.gridFitType = GridFitType.PIXEL;
-		statusText.width = 240;
+		statusText.width = stage.stageWidth;
 		statusText.height = 100;
 		statusText.selectable = false;
 		statusText.mouseEnabled = false;
@@ -100,6 +101,7 @@ class Main extends Sprite {
 			doVideoUpdate = true;
 		});
 		addChild(video);
+		addChild(statusText);
 	}
 
 	/**
@@ -134,6 +136,13 @@ class Main extends Sprite {
 		}
 	}
 
+	/**
+	 * Handle resize events
+	 */
+	function stage_resize(e:Event){
+
+	}
+	
 	/**
 	 * output the index and paths of serial devices
 	 */
@@ -238,9 +247,8 @@ class Main extends Sprite {
 			var bytesAvailable = serialObj.available();
 			if (bytesAvailable > 0) {
 				serialBuffer += serialObj.readBytes(bytesAvailable).toString();
-
 				// remove any \r characters
-				StringTools.replace(serialBuffer, "\r", "");
+				serialBuffer = StringTools.replace(serialBuffer, "\r", "");
 
 				// if there's a line feed?
 				if (serialBuffer.indexOf('\n') != -1) {
@@ -252,8 +260,19 @@ class Main extends Sprite {
 
 					// microbit seems to be sending a space (char 32) filled buffer.
 					serialLine = StringTools.trim(lines[0]);
-
-					playVideoByTag(serialLine);
+					
+					if(serialLine=="INITIALIZING" || serialLine=="READY"){
+						serialBuffer="";
+					}else{
+						playVideoByTag(serialLine);
+						if(noBytesAfterNewline){
+							serialBuffer="";
+						}else{
+							// todo handle bufferRemainder
+							serialBuffer="";
+						}
+					}
+					
 				}
 			}
 		}
@@ -276,7 +295,7 @@ class Main extends Sprite {
 			return;
 		}
 		if (DataController.videoTags.exists(tag)) {
-			statusText.text = 'starting video $tag';
+			statusText.text = 'starting video ' + DataController.videoTags.get(tag) ;
 			video.load(DataController.videoTags.get(tag));
 			video.play();
 			tagStartTime = millies;
