@@ -3,20 +3,28 @@
 	
 	<meta title="UartVidPlay" package="nl.avans.uartvidplay" version="1.0.0" company="Avans" />
 	
-	<app main="Main" path="Release" file="UartVidPlay" unless="debug"/>
-	<app main="Main" path="Debug" file="UartVidPlay_Debug" if="debug" />
-	
+	<section unless="useSerial">
+		<app main="Main" path="Release" file="UartVidPlay" unless="debug"/>
+		<app main="Main" path="Debug" file="UartVidPlay_Debug" if="debug" />
+	</section>
+
+	<section if="useSerial">
+		<app main="Main" path="Release_Serial" file="UartVidPlay" unless="debug"/>
+		<app main="Main" path="Debug_Serial" file="UartVidPlay_Debug" if="debug" />
+		<haxelib name="hxserial"/>
+	</section>
+
 	<source path="Source" />
 	
 	<haxelib name="openfl" />
 	<haxelib name="hxvlc"/>
-	<haxelib name="hxSerial"/>
 
 	<section if="mac">
 		<haxedef name="MACOSX_VER" value="26.1"/>
 	</section>
 
 	<assets path="Assets/data" rename="data" />
+	<assets path="Assets/images" rename="images" />
 
 	<window background="#000000" fps="60"/>
 </project>

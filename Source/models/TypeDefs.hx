@@ -5,6 +5,7 @@ typedef AppData = {
 	var fullscreen:Bool;
 	var portName:String;
 	var videoPath:String;
+	var background:String;
 	var videoTags:Array<VideoTag>;
 }
 

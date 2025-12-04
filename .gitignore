@@ -3,4 +3,7 @@
 dump/
 Export
 Release
+Release_Serial
 Debug
+Debug_Serial
+.DS_Store

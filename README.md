@@ -5,7 +5,7 @@
 - hxvlc
 
 ```
-haxelib install hxserial
+haxelib git hxserial https://github.com/werkplaatsenpabobreda/hxserial
 haxelib install hxvlc
 ```
 

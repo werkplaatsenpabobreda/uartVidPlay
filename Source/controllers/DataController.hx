@@ -65,6 +65,7 @@ class DataController {
 			Path.directory(lime.system.System.applicationStorageDirectory).toString(),
 			"config.json"
 		]);
+		trace('opening $jsonFile');
 		if(FileSystem.exists(jsonFile)){
 			openFileOrDir(jsonFile);
 		}

@@ -2,6 +2,9 @@
     "folders": [
         {
             "path": "."
+        },
+        {
+            "path": "../../../../../../HaxeToolkit/dev/hxserial"
         }
     ],
     "settings": {},
