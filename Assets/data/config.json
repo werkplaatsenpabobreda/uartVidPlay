@@ -4,6 +4,7 @@
     "videoPath": "~/videos",
     "waitUntilVideoFinished": false,
     "retriggerTag": false,
+    "fullscreen":false,
     "background":"background.jpg",
     "videoTags": [
         {
