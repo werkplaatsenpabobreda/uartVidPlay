@@ -6,6 +6,7 @@
     "retriggerTag": false,
     "fullscreen":false,
     "background":"background.jpg",
+    "websocketHost":"ws://locahost",
     "videoTags": [
         {
             "tag": "ABCDEFG",

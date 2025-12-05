@@ -11,13 +11,16 @@
 	<section if="useSerial">
 		<app main="Main" path="Release_Serial" file="UartVidPlay" unless="debug"/>
 		<app main="Main" path="Debug_Serial" file="UartVidPlay_Debug" if="debug" />
-		<haxelib name="hxserial"/>
 	</section>
 
 	<source path="Source" />
 	
 	<haxelib name="openfl" />
 	<haxelib name="hxvlc"/>
+	<haxelib name="signals"/>
+	<haxelib name="hxserial"/>
+	<haxelib name="hxwebsockets"/>
+	
 
 	<section if="mac">
 		<haxedef name="MACOSX_VER" value="26.1"/>

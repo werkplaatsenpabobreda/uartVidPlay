@@ -7,6 +7,7 @@ typedef AppData = {
 	var videoPath:String;
 	var background:String;
 	var videoTags:Array<VideoTag>;
+	var websocketHost:String;
 }
 
 typedef VideoTag = {

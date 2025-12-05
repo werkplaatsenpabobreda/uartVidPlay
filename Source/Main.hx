@@ -1,37 +1,41 @@
 package;
 
+import controllers.KeyboardController;
 import openfl.Assets;
 import openfl.display.Bitmap;
 import openfl.display.StageDisplayState;
-import haxe.io.Path;
 import openfl.ui.Keyboard;
 import openfl.events.KeyboardEvent;
+import openfl.display.Sprite;
+import openfl.events.Event;
+import openfl.text.*;
 import lime.system.System;
+
 #if sys
 import sys.FileSystem;
 import sys.io.File;
 #end
+
 import haxe.Timer;
-import openfl.display.Sprite;
-import openfl.events.Event;
-import openfl.text.*;
 import hxvlc.openfl.Video;
-#if useSerial
-import hxSerial.Serial;
-#end
+
+
+import controllers.SerialController;
+import controllers.WebsocketController;
+import controllers.SignalController;
 import controllers.DataController;
 
 class Main extends Sprite {
+	
 	#if useSerial
-	var serialObj:hxSerial.Serial;
+	var serialController:SerialController;
 	#end
 
-	var deviceList:Array<String> = [];
-	var storedPortPath:String;
-	var serialConnected:Bool = false;
-	var serialPortIndex:Int = 0;
-	var serialBuffer:String = "";
-	var serialLine:String;
+	#if useWebsocket
+	var websocketController:WebsocketController;
+	#end
+
+	var keyboardController:KeyboardController;
 
 	var doVideoUpdate:Bool = false;
 
@@ -42,7 +46,6 @@ class Main extends Sprite {
 	var keyBuffer:String = "";
 
 	var ffmpegAvailable:Bool = false;
-	var useSerial = false;
 	var stopUpdateAtNextFrame:Bool = false;
 
 	// UI
@@ -57,28 +60,34 @@ class Main extends Sprite {
 		super();
 
 		DataController.loadConfig();
-
-		stage.addEventListener(Event.ENTER_FRAME, stage_onEnterFrame);
-		stage.addEventListener(Event.RESIZE, stage_resize);
-		stage.addEventListener(KeyboardEvent.KEY_DOWN, stage_onKeyDown);
+		SignalController.tagDetected.add( playVideoByTag );
 
 		initUI();
+		
 		#if useSerial
-		useSerial = true;
-		initSerial();
+		serialController = SerialController.instance;
+		serialController.connectSerialPortByIndex(DataController.data.portIndex);
 		#end
+
+		#if useWebsocket
+		websocketController = WebsocketController.instance;
+		websocketController.wsHost = DataController.data.websocketHost;
+		websocketController.connect();
+		#end
+
+		keyboardController = KeyboardController.instance;
+		keyboardController.init(stage);
+
 		initVideo();
 
 		if (DataController.data.fullscreen) {
 			goFullScreen();
 		}
-	}
 
-	/**
-	 * 
-	 */
-	private function initSerial():Void {
-		connectSerialPortByIndex(DataController.data.portIndex);
+		stage.addEventListener(Event.ENTER_FRAME, stage_onEnterFrame);
+		stage.addEventListener(Event.RESIZE, stage_resize);
+		stage.addEventListener(KeyboardEvent.KEY_DOWN, stage_onKeyDown);
+		
 	}
 
 	/**
@@ -142,7 +151,10 @@ class Main extends Sprite {
 	 * Handle stage enterframe events
 	 */
 	private inline function stage_onEnterFrame(event:Event):Void {
-		parseSerial();
+		
+		#if useSerial
+		serialController.parseSerial();
+		#end
 
 		if (doVideoUpdate) {
 			if (video != null && video.bitmapData != null) {
@@ -165,20 +177,22 @@ class Main extends Sprite {
 	 * Handle keydown events
 	 */
 	function stage_onKeyDown(e:KeyboardEvent) {
-		if (e.keyCode == 13) {
-			playVideoByTag(keyBuffer);
-			keyBuffer = "";
-		} else {
-			keyBuffer += String.fromCharCode(e.charCode);
-		}
+		// if (e.keyCode == 13) {
+		// 	playVideoByTag(keyBuffer);
+		// 	keyBuffer = "";
+		// } else {
+		// 	keyBuffer += String.fromCharCode(e.charCode);
+		// }
 
 		if (e.ctrlKey) {
 			switch (e.keyCode) {
 				case Keyboard.SPACE:
 					video.stop();
 
+				#if useSerial
 				case Keyboard.T:
-					traceSerialDevices();
+					serialController.traceSerialDevices();
+				#end
 
 				case Keyboard.COMMA:
 					DataController.openConfigJson();
@@ -212,26 +226,14 @@ class Main extends Sprite {
 		stage.displayState = StageDisplayState.NORMAL;
 	}
 
+	/**
+	 * 
+	 */
 	public function toggleFullScreen() {
 		if (stage.displayState != StageDisplayState.NORMAL) {
 			stage.displayState = StageDisplayState.NORMAL;
 		} else {
 			goFullScreen();
-		}
-	}
-
-	/**
-	 * output the index and paths of serial devices
-	 */
-	function traceSerialDevices() {
-		if (deviceList == null)
-			return;
-		if (deviceList.length > 0) {
-			for (j in 0...deviceList.length) {
-				trace(j, deviceList[j]);
-			}
-		} else {
-			trace("No serial Devices found");
 		}
 	}
 
@@ -247,142 +249,6 @@ class Main extends Sprite {
 	 */
 	private inline function stage_onDeactivate(event:Event):Void {
 		video?.pause();
-	}
-
-	/**
-	 * [Description]
-	 * @param s 
-	 */
-	private function autoDiscoverPort(s:String) {
-		// loop thtough ports
-		// connect
-		// checkbuffer volor stringParam
-		// wait x seconds
-		// found stringParam?  set index, return
-		// next port
-	}
-
-	/**
-	 * Connect to the a SerialPort by Index
-	 * @param i PortIndex
-	 */
-	function connectSerialPortByIndex(i:Int) {
-		#if useSerial
-		if (serialObj != null) {
-			if (serialObj.isSetup) {
-				serialObj.close();
-			}
-		}
-
-		deviceList = Serial.getDeviceList();
-
-		if (i >= 0 && i < deviceList.length) {
-			serialObj = new hxSerial.Serial(deviceList[i], 115200, true);
-			statusText.text = 'connected to ${serialObj.portName}';
-			serialConnected = true;
-			serialPortIndex = i;
-		} else {
-			statusText.text = 'SerialPort index $i is not available';
-		}
-		#end
-	}
-
-	/**
-	 * Connect to the a SerialPort by Path
-	 * @param String devicePath
-	 */
-	function connectSerialPortByPath(devicePath:String) {
-		#if useSerial
-		if (serialObj != null) {
-			if (serialObj.isSetup) {
-				serialObj.close();
-			}
-		}
-
-		deviceList = Serial.getDeviceList();
-		serialPortIndex = deviceList.indexOf(devicePath);
-		if (serialPortIndex != -1) {
-			serialObj = new hxSerial.Serial(deviceList[serialPortIndex], 115200, true);
-			statusText.text = 'connected to ${serialObj.portName}';
-			serialConnected = true;
-		} else {
-			statusText.text = 'SerialPort $devicePath is not available';
-			trace('SerialPort $devicePath is not available');
-		}
-		#end
-	}
-
-	/**
-	 * Connect to the next SerialPort if available
-	 */
-	function nextPort() {
-		#if useSerial
-		if (deviceList != null) {
-			if (serialPortIndex < deviceList.length - 2) {
-				connectSerialPortByIndex(serialPortIndex + 1);
-			}
-		}
-		#end
-	}
-
-	/**
-	 *  Connect to the previous SerialPort if available
-	 */
-	function previousPort() {
-		#if useSerial
-		if (deviceList != null) {
-			if (serialPortIndex > 0) {
-				connectSerialPortByIndex(serialPortIndex - 1);
-			} else {
-				connectSerialPortByIndex(0);
-			}
-		}
-		#end
-	}
-
-	/**
-	 * parse serial data
-	 */
-	function parseSerial() {
-		#if useSerial
-		// TODO: THIS COULD BE HANDLED A LOT BETTER
-		if (serialConnected) {
-			var bytesAvailable = serialObj.available();
-			if (bytesAvailable > 0) {
-				// trace('bytesAvailable $bytesAvailable ');
-				serialBuffer += serialObj.readBytes(bytesAvailable).toString();
-				// remove any \r characters
-				serialBuffer = StringTools.replace(serialBuffer, "\r", "");
-
-				// if there's a line feed?
-				if (serialBuffer.indexOf('\n') != -1) {
-					// is the newline at the end of the buffer?
-					var noBytesAfterNewline = serialBuffer.lastIndexOf('\n') == serialBuffer.length - 1;
-
-					// split lines
-					var lines:Array<String> = serialBuffer.split("\n");
-
-					// microbit seems to be sending a space (char 32) filled buffer.
-					serialLine = StringTools.trim(lines[0]);
-					// trace(serialLine);
-					if (serialLine == "INITIALIZING" || serialLine == "READY") {
-						serialBuffer = "";
-						if (serialLine == "READY") {
-							statusText.text = "READY, waiting for tag";
-						}
-					} else {
-						playVideoByTag(serialLine);
-						if (noBytesAfterNewline) {
-							serialBuffer = "";
-						} else {
-							// todo handle bufferRemainder
-							serialBuffer = "";
-						}
-					}
-				}
-			}
-		}
-		#end
 	}
 
 	/**
