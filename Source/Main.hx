@@ -1,5 +1,6 @@
 package;
 
+import lime.ui.MouseWheelMode;
 #if sys
 import sys.FileSystem;
 import sys.io.File;
@@ -10,6 +11,7 @@ import openfl.display.StageDisplayState;
 import openfl.display.Sprite;
 import openfl.events.KeyboardEvent;
 import openfl.events.Event;
+import openfl.ui.Mouse;
 import openfl.ui.Keyboard;
 import lime.system.System;
 import hxvlc.openfl.Video;
@@ -65,6 +67,9 @@ class Main extends Sprite {
 		SignalController.tagDetected.add(playVideoByTag);
 		SignalController.tagDeviceError.add(showMessage);
 		SignalController.tagDeviceReady.add(showConnected);
+		#if useSerial
+		SignalController.error.add(forceShowMessage);
+		#end
 		SignalController.message.add(showMessage);
 
 		initUI();
@@ -78,8 +83,8 @@ class Main extends Sprite {
 		SignalController.noSerialDeviceError.add(forceShowMessage);
 		serialController = SerialController.instance;
 		if (DataController.data.autoDiscoverPort) {
-			trace("autoDiscoverPort");
 			serialController.autoDiscoverPort();
+			addChild(message);
 		} else {
 			if (DataController.data.usePortPath || DataController.data.portPath != "") {
 				serialController.connectSerialPortByPath(DataController.data.portPath);
@@ -98,6 +103,10 @@ class Main extends Sprite {
 
 		initVideo();
 
+		if (DataController.data.hideMouse) {
+			Mouse.hide();
+		}
+
 		if (DataController.data.fullscreen) {
 			goFullScreen();
 		}
@@ -111,7 +120,7 @@ class Main extends Sprite {
 	 * Create an instructions overlay
 	 */
 	private function initUI():Void {
-		if (DataController.data.background != null && DataController.data.background !="") {
+		if (DataController.data.background != null && DataController.data.background != "") {
 			background = new Bitmap(Assets.getBitmapData('images/' + DataController.data.background));
 			addChild(background);
 		}
@@ -208,6 +217,9 @@ class Main extends Sprite {
 	 * [Description]
 	 */
 	function showConnected() {
+		#if useSerial
+		DataController.data.portPath = SerialController.instance.storedPortPath;
+		#end
 		connectDot.connected = true;
 		if (!contains(connectDot)) {
 			addChild(connectDot);
@@ -225,10 +237,9 @@ class Main extends Sprite {
 	function stage_onKeyDown(e:KeyboardEvent) {
 		if (e.ctrlKey) {
 			switch (e.keyCode) {
-				case Keyboard.SPACE:
-					video.stop();
-
 				#if useSerial
+				case Keyboard.R:
+					serialController.autoDiscoverPort();
 				case Keyboard.D:
 					serialController.traceSerialLines = !serialController.traceSerialLines;
 				case Keyboard.T:
@@ -239,14 +250,26 @@ class Main extends Sprite {
 					serialController.previousPort();
 				#end
 
+				case Keyboard.SPACE:
+					video.stop();
+
 				case Keyboard.COMMA:
 					DataController.openConfigJson();
+				case Keyboard.PERIOD:
+					DataController.saveConfig();
 
 				case Keyboard.M:
 					if (contains(message)) {
 						removeChild(message);
 					} else {
 						addChild(message);
+					}
+				case Keyboard.H:
+					DataController.data.hideMouse = !DataController.data.hideMouse;
+					if (DataController.data.hideMouse) {
+						Mouse.hide();
+					} else {
+						Mouse.show();
 					}
 			}
 		} else {

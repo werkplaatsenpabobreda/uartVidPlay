@@ -1,7 +1,9 @@
 package models;
 
 typedef AppData = {
+
 	var fullscreen:Bool;
+	var hideMouse:Bool;
 	var autoDiscoverPort:Bool;
 	var usePortPath:Bool;
 	var portIndex:Int;

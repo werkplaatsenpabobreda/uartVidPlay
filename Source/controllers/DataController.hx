@@ -1,10 +1,11 @@
 package controllers;
 
-import sys.io.File;
+import haxe.format.JsonPrinter;
 import models.TypeDefs;
 import haxe.Json;
 #if sys
 import haxe.io.Path;
+import sys.io.File;
 import sys.FileSystem;
 import lime.system.System;
 #end
@@ -52,7 +53,7 @@ class DataController {
 	 */
 	public static function saveConfig() {
 		try {
-			File.saveContent(jsonPath, Json.stringify(data));
+			File.saveContent(jsonPath, Json.stringify(data,"\t"));
 		} catch (e) {}
 	}
 

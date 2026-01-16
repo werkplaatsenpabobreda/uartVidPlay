@@ -18,6 +18,7 @@ class SerialController {
 	var serialLine:String;
 	var serialObj:Serial;
 	var inScanMode:Bool = false;
+	var scanPeriod:Int = 2000;
 
 	private function new() {}
 
@@ -46,13 +47,17 @@ class SerialController {
 		if (!inScanMode) {
 			hasDevices();
 			inScanMode = true;
+			trace('Autodiscover port on ${deviceList.length} ports');
 			serialPortIndex = deviceList.length -1;
 		}
 
 		if (inScanMode) {
 			if(serialPortIndex > 0){
 				connectSerialPortByIndex(serialPortIndex);
-				Timer.delay( checkConnected, 3000);
+				Timer.delay( checkConnected, scanPeriod);
+			}else{
+				SignalController.error.dispatch('no response on any serialport');
+				inScanMode = false;
 			}
 		}
 	}
