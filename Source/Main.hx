@@ -146,6 +146,7 @@ class Main extends Sprite {
 			stage.nativeWindow.removeEventListener(Event.ACTIVATE, stage_onActivate);
 			stage.nativeWindow.removeEventListener(Event.DEACTIVATE, stage_onDeactivate);
 			haxe.Timer.delay(() -> {
+				SignalController.message.dispatch('done playing video');
 				removeChild(video);
 			}, 120);
 		});
