@@ -111,7 +111,7 @@ class Main extends Sprite {
 	 * Create an instructions overlay
 	 */
 	private function initUI():Void {
-		if (DataController.data.background != null) {
+		if (DataController.data.background != null && DataController.data.background !="") {
 			background = new Bitmap(Assets.getBitmapData('images/' + DataController.data.background));
 			addChild(background);
 		}
