@@ -73,11 +73,16 @@ class Main extends Sprite {
 		#if useSerial
 		SignalController.noSerialDeviceError.add( forceShowMessage);
 		serialController = SerialController.instance;
-		if (DataController.data.usePortPath || DataController.data.portPath != "") {
-			serialController.connectSerialPortByPath(DataController.data.portPath);
-			message.text = serialController.storedPortPath;
-		} else {
-			serialController.connectSerialPortByIndex(DataController.data.portIndex);
+		if(DataController.data.autoDiscoverPort){
+			trace("autoDiscoverPort");
+			serialController.autoDiscoverPort();
+		}else{
+			if (DataController.data.usePortPath || DataController.data.portPath != "") {
+				serialController.connectSerialPortByPath(DataController.data.portPath);
+				message.text = serialController.storedPortPath;
+			} else {
+				serialController.connectSerialPortByIndex(DataController.data.portIndex);
+			}
 		}
 		#end
 

@@ -1,11 +1,15 @@
 package controllers;
 
+import haxe.Timer;
 import hxSerial.Serial;
 
 class SerialController {
 	public static var instance(default, null):SerialController = new SerialController();
 
 	public var deviceList:Array<String> = [];
+	public var storedPortPath:String;
+	public var traceSerialLines:Bool = false;
+	public var connected(default, null):Bool = false;
 
 	var usePortPath:Bool = true;
 	var serialPortIndex:Int = 0;
@@ -13,9 +17,7 @@ class SerialController {
 	var serialBuffer:String = "";
 	var serialLine:String;
 	var serialObj:Serial;
-
-	public var storedPortPath:String;
-	public var traceSerialLines:Bool = false;
+	var inScanMode:Bool = false;
 
 	private function new() {}
 
@@ -38,15 +40,34 @@ class SerialController {
 	 * [Description]
 	 * @param s 
 	 */
-	public function autoDiscoverPort(s:String) {
-		// loop thtough ports
-		// connect
-		// checkbuffer volor stringParam
-		// wait x seconds
-		// found stringParam?  set index, return
-		// next port
+	public function autoDiscoverPort() {
+		
+		// loop through ports
+		if (!inScanMode) {
+			hasDevices();
+			inScanMode = true;
+			serialPortIndex = deviceList.length -1;
+		}
+
+		if (inScanMode) {
+			if(serialPortIndex > 0){
+				connectSerialPortByIndex(serialPortIndex);
+				Timer.delay( checkConnected, 3000);
+			}
+		}
 	}
 
+	function checkConnected(){
+		if (!connected){
+			if(serialPortIndex > 0 ){
+				serialPortIndex--;
+				autoDiscoverPort();
+			}else{
+				SignalController.error.dispatch('no response on any serialport');
+				inScanMode = false;
+			}
+		}
+	}
 	/**
 	 * Connect to the a SerialPort by Index
 	 * @param i PortIndex
@@ -62,7 +83,6 @@ class SerialController {
 		deviceList = Serial.getDeviceList();
 
 		if (i >= 0 && i < deviceList.length) {
-			trace('connecting to ${deviceList[i]}');
 			storedPortPath = deviceList[i];
 			SignalController.message.dispatch('connecting to serialport $storedPortPath');
 
@@ -104,7 +124,7 @@ class SerialController {
 	 * @return Bool
 	 */
 	public function hasDevices():Bool {
-		if (deviceList == null) {
+		if (deviceList.length == 0) {
 			deviceList = Serial.getDeviceList();
 		}
 		if (deviceList.length > 0) {
@@ -123,11 +143,13 @@ class SerialController {
 		#if useSerial
 		if (!hasDevices())
 			return;
+			
 		if (serialPortIndex < deviceList.length - 1) {
 			serialPortIndex++;
 		} else {
 			serialPortIndex = 0;
 		}
+		connected = false;
 		connectSerialPortByIndex(serialPortIndex);
 		#end
 	}
@@ -144,6 +166,7 @@ class SerialController {
 		} else {
 			serialPortIndex = deviceList.length > 0 ? deviceList.length - 1 : 0;
 		}
+		connected = false;
 		connectSerialPortByIndex(serialPortIndex);
 		#end
 	}
@@ -181,10 +204,13 @@ class SerialController {
 						|| uCasedSerialLine == "DIDN'T FIND PN532 BOARD") {
 						serialBuffer = "";
 						if (uCasedSerialLine == "READY") {
+							connected = true;
 							SignalController.tagDeviceReady.dispatch("READY, waiting for tag");
 							SignalController.message.dispatch("READY, waiting for tag");
 						} else if (uCasedSerialLine == "DIDN'T FIND PN532 BOARD") {
 							SignalController.tagDeviceError.dispatch(serialLine);
+						}else{
+
 						}
 					} else {
 						SignalController.tagDetected.dispatch(serialLine);

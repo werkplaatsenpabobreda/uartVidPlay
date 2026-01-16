@@ -2,6 +2,7 @@
     "portPath": "",
     "usePortPath": false,
     "portIndex": 0,
+    "autoDiscover":true,
     "waitUntilVideoFinished": false,
     "retriggerTag": false,
     "fullscreen":false,

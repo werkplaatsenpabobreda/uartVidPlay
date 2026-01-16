@@ -29,5 +29,5 @@
 	<assets path="Assets/data" rename="data" />
 	<assets path="Assets/images" rename="images" />
 
-	<window background="#000000" fps="60"/>
+	<window background="#000000" fps="60" width="1024" height="576" resizeable="true"/>
 </project>

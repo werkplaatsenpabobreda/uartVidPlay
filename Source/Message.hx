@@ -22,17 +22,27 @@ class Message extends Sprite {
 		return this.text = t;
 	}
 
+	/**
+	 * [Description]
+	 */
 	public function new() {
 		super();
 
 		addEventListener(Event.ADDED_TO_STAGE, stage_added);
 	}
 
+	/**
+	 * [Description]
+	 * @param e 
+	 */
 	function stage_added(e:Event) {
 		removeEventListener(Event.ADDED_TO_STAGE, stage_added);
 		init();
 	}
 
+	/**
+	 * [Description]
+	 */
 	function init() {
 		tf = new TextFormat("_sans", 12, 0xFFFFFF);
 		txMsg = new TextField();
@@ -53,11 +63,14 @@ class Message extends Sprite {
 		background.graphics.endFill();
 		addChild(background);
 		addChild(txMsg);
-        this.y = stage.stageHeight - this.height + padding;
+		this.y = stage.stageHeight - this.height + padding;
 	}
 
+	/**
+	 * [Description]
+	 */
 	public function redraw() {
-		if ( stage != null) {
+		if (stage != null) {
 			background.graphics.clear();
 			background.graphics.beginFill(0x000000, .6);
 			background.graphics.drawRect(0, 0, stage.stageWidth, _height);
