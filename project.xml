@@ -23,7 +23,7 @@
 	
 
 	<section if="mac">
-		<haxedef name="MACOSX_VER" value="26.1"/>
+		<haxedef name="MACOSX_VER" value="26.2"/>
 	</section>
 
 	<assets path="Assets/data" rename="data" />

@@ -3,36 +3,38 @@ package controllers;
 import hxSerial.Serial;
 
 class SerialController {
-    
 	public static var instance(default, null):SerialController = new SerialController();
 
 	public var deviceList:Array<String> = [];
-	
+
+	var usePortPath:Bool = true;
 	var serialPortIndex:Int = 0;
 	var serialConnected:Bool = false;
 	var serialBuffer:String = "";
 	var serialLine:String;
-	var storedPortPath:String;
 	var serialObj:Serial;
 
- 	private function new() {}
-	
-    /**
+	public var storedPortPath:String;
+	public var traceSerialLines:Bool = false;
+
+	private function new() {}
+
+	/**
 	 * output the index and paths of serial devices
 	 */
 	public function traceSerialDevices() {
-		if (deviceList == null)
-			return;
+		deviceList = Serial.getDeviceList();
 		if (deviceList.length > 0) {
+			trace("found the following serial devices:");
 			for (j in 0...deviceList.length) {
-				trace(j, deviceList[j]);
+				trace('index $j  ${deviceList[j]}');
 			}
 		} else {
 			trace("No serial Devices found");
 		}
 	}
 
-/**
+	/**
 	 * [Description]
 	 * @param s 
 	 */
@@ -60,6 +62,10 @@ class SerialController {
 		deviceList = Serial.getDeviceList();
 
 		if (i >= 0 && i < deviceList.length) {
+			trace('connecting to ${deviceList[i]}');
+			storedPortPath = deviceList[i];
+			SignalController.message.dispatch('connecting to serialport $storedPortPath');
+
 			serialObj = new hxSerial.Serial(deviceList[i], 115200, true);
 			serialConnected = true;
 			serialPortIndex = i;
@@ -81,13 +87,33 @@ class SerialController {
 
 		deviceList = Serial.getDeviceList();
 		serialPortIndex = deviceList.indexOf(devicePath);
-		if (serialPortIndex != -1) {
-			serialObj = new hxSerial.Serial(deviceList[serialPortIndex], 115200, true);
-			serialConnected = true;
+		if (serialPortIndex == -1) {
+			SignalController.message.dispatch('serialport $devicePath is not available');
+			traceSerialDevices();
 		} else {
-			trace('SerialPort $devicePath is not available');
+			SignalController.message.dispatch('connecting to serialport $devicePath');
+			serialObj = new hxSerial.Serial(devicePath, 115200, true);
+			serialConnected = true;
+			storedPortPath = devicePath;
 		}
 		#end
+	}
+
+	/**
+	 * [Description]
+	 * @return Bool
+	 */
+	public function hasDevices():Bool {
+		if (deviceList == null) {
+			deviceList = Serial.getDeviceList();
+		}
+		if (deviceList.length > 0) {
+			return true;
+		} else {
+			trace("no serial devices found");
+			SignalController.noSerialDeviceError.dispatch('no serial devices found');
+			return false;
+		}
 	}
 
 	/**
@@ -95,11 +121,14 @@ class SerialController {
 	 */
 	public function nextPort() {
 		#if useSerial
-		if (deviceList != null) {
-			if (serialPortIndex < deviceList.length - 2) {
-				connectSerialPortByIndex(serialPortIndex + 1);
-			}
+		if (!hasDevices())
+			return;
+		if (serialPortIndex < deviceList.length - 1) {
+			serialPortIndex++;
+		} else {
+			serialPortIndex = 0;
 		}
+		connectSerialPortByIndex(serialPortIndex);
 		#end
 	}
 
@@ -108,17 +137,18 @@ class SerialController {
 	 */
 	public function previousPort() {
 		#if useSerial
-		if (deviceList != null) {
-			if (serialPortIndex > 0) {
-				connectSerialPortByIndex(serialPortIndex - 1);
-			} else {
-				connectSerialPortByIndex(0);
-			}
+		if (!hasDevices())
+			return;
+		if (serialPortIndex > 0) {
+			serialPortIndex--;
+		} else {
+			serialPortIndex = deviceList.length > 0 ? deviceList.length - 1 : 0;
 		}
+		connectSerialPortByIndex(serialPortIndex);
 		#end
 	}
 
-    /**
+	/**
 	 * parse serial data
 	 */
 	public function parseSerial() {
@@ -142,14 +172,21 @@ class SerialController {
 
 					// microbit seems to be sending a space (char 32) filled buffer.
 					serialLine = StringTools.trim(lines[0]);
-					// trace(serialLine);
-					if (serialLine == "INITIALIZING" || serialLine == "READY") {
+					if (traceSerialLines) {
+						trace(serialLine);
+					}
+					var uCasedSerialLine = serialLine.toUpperCase();
+					if (uCasedSerialLine == "INITIALIZING"
+						|| uCasedSerialLine == "READY"
+						|| uCasedSerialLine == "DIDN'T FIND PN532 BOARD") {
 						serialBuffer = "";
-						if (serialLine == "READY") {
+						if (uCasedSerialLine == "READY") {
 							SignalController.tagDeviceReady.dispatch("READY, waiting for tag");
+							SignalController.message.dispatch("READY, waiting for tag");
+						} else if (uCasedSerialLine == "DIDN'T FIND PN532 BOARD") {
+							SignalController.tagDeviceError.dispatch(serialLine);
 						}
 					} else {
-						
 						SignalController.tagDetected.dispatch(serialLine);
 
 						if (noBytesAfterNewline) {

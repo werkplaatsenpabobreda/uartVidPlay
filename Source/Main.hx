@@ -1,32 +1,35 @@
 package;
 
-import controllers.KeyboardController;
-import openfl.Assets;
-import openfl.display.Bitmap;
-import openfl.display.StageDisplayState;
-import openfl.ui.Keyboard;
-import openfl.events.KeyboardEvent;
-import openfl.display.Sprite;
-import openfl.events.Event;
-import openfl.text.*;
-import lime.system.System;
-
 #if sys
 import sys.FileSystem;
 import sys.io.File;
 #end
-
-import haxe.Timer;
+import openfl.Assets;
+import openfl.display.Bitmap;
+import openfl.display.StageDisplayState;
+import openfl.display.Sprite;
+import openfl.events.KeyboardEvent;
+import openfl.events.Event;
+import openfl.ui.Keyboard;
+import lime.system.System;
 import hxvlc.openfl.Video;
-
-
-import controllers.SerialController;
-import controllers.WebsocketController;
 import controllers.SignalController;
 import controllers.DataController;
+#if useKeyboard
+import controllers.KeyboardController;
+#end
+#if useSerial
+import controllers.SerialController;
+#end
+#if useWebsocket
+import controllers.WebsocketController;
+#end
 
 class Main extends Sprite {
-	
+	#if useKeyboard
+	var keyboardController:KeyboardController;
+	#end
+
 	#if useSerial
 	var serialController:SerialController;
 	#end
@@ -35,23 +38,19 @@ class Main extends Sprite {
 	var websocketController:WebsocketController;
 	#end
 
-	var keyboardController:KeyboardController;
-
 	var doVideoUpdate:Bool = false;
 
 	var tagStartTime:Int = 0;
 	var tagTriggerDebounce:Int = 2000; // how long before a new tag can be scanned and trigger a Video
 	var currentTag:String;
 
-	var keyBuffer:String = "";
-
 	var ffmpegAvailable:Bool = false;
 	var stopUpdateAtNextFrame:Bool = false;
 
 	// UI
 	var video:Video;
-	var statusText:TextField;
 	var background:Bitmap;
+	var message:Message;
 
 	/** 
 	 *
@@ -60,13 +59,26 @@ class Main extends Sprite {
 		super();
 
 		DataController.loadConfig();
-		SignalController.tagDetected.add( playVideoByTag );
+		SignalController.tagDetected.add(playVideoByTag);
+		SignalController.tagDeviceError.add(showMessage);
+		SignalController.message.add(showMessage);
 
 		initUI();
-		
+
+		#if useKeyboard
+		keyboardController = KeyboardController.instance;
+		keyboardController.init(stage);
+		#end
+
 		#if useSerial
+		SignalController.noSerialDeviceError.add( forceShowMessage);
 		serialController = SerialController.instance;
-		serialController.connectSerialPortByIndex(DataController.data.portIndex);
+		if (DataController.data.usePortPath || DataController.data.portPath != "") {
+			serialController.connectSerialPortByPath(DataController.data.portPath);
+			message.text = serialController.storedPortPath;
+		} else {
+			serialController.connectSerialPortByIndex(DataController.data.portIndex);
+		}
 		#end
 
 		#if useWebsocket
@@ -74,9 +86,6 @@ class Main extends Sprite {
 		websocketController.wsHost = DataController.data.websocketHost;
 		websocketController.connect();
 		#end
-
-		keyboardController = KeyboardController.instance;
-		keyboardController.init(stage);
 
 		initVideo();
 
@@ -87,28 +96,19 @@ class Main extends Sprite {
 		stage.addEventListener(Event.ENTER_FRAME, stage_onEnterFrame);
 		stage.addEventListener(Event.RESIZE, stage_resize);
 		stage.addEventListener(KeyboardEvent.KEY_DOWN, stage_onKeyDown);
-		
 	}
 
 	/**
 	 * Create an instructions overlay
 	 */
 	private function initUI():Void {
-		statusText = new TextField();
-		statusText.defaultTextFormat = new TextFormat("_sans", 11, 0xFFFFFF);
-		statusText.embedFonts = true;
-		statusText.antiAliasType = AntiAliasType.ADVANCED;
-		statusText.gridFitType = GridFitType.PIXEL;
-		statusText.width = stage.stageWidth;
-		statusText.height = 100;
-		statusText.selectable = false;
-		statusText.mouseEnabled = false;
-		statusText.text = "";
-
 		if (DataController.data.background != null) {
 			background = new Bitmap(Assets.getBitmapData('images/' + DataController.data.background));
 			addChild(background);
 		}
+
+		message = new Message();
+		// addChild(message);
 	}
 
 	/**
@@ -118,7 +118,6 @@ class Main extends Sprite {
 		video = new Video();
 
 		video.onOpening.add(function():Void {
-			trace("onOpening");
 			stage.nativeWindow.addEventListener(Event.ACTIVATE, stage_onActivate);
 			stage.nativeWindow.addEventListener(Event.DEACTIVATE, stage_onDeactivate);
 			doVideoUpdate = true;
@@ -127,13 +126,14 @@ class Main extends Sprite {
 		video.onEndReached.add(function():Void {
 			stage.nativeWindow.removeEventListener(Event.ACTIVATE, stage_onActivate);
 			stage.nativeWindow.removeEventListener(Event.DEACTIVATE, stage_onDeactivate);
-			haxe.Timer.delay( ()->{ removeChild(video);} , 120);
+			haxe.Timer.delay(() -> {
+				removeChild(video);
+			}, 120);
 		});
 
 		video.onFormatSetup.add(function():Void {
-			trace("onFormatSetup");
+			// trace("onFormatSetup");
 		});
-	
 	}
 
 	/**
@@ -151,7 +151,6 @@ class Main extends Sprite {
 	 * Handle stage enterframe events
 	 */
 	private inline function stage_onEnterFrame(event:Event):Void {
-		
 		#if useSerial
 		serialController.parseSerial();
 		#end
@@ -174,43 +173,67 @@ class Main extends Sprite {
 	}
 
 	/**
+	 * [Description]
+	 */
+	function forceShowMessage(s:String){
+		if(message!=null){
+			addChild(message);
+			showMessage(s);
+		}
+	}
+	/**
+	 * [Description]
+	 * @param s 
+	 */
+	function showMessage(s:String) {
+		if (message != null) {
+			message.text = s;
+		} else {
+			trace(s);
+		}
+	}
+
+	/**
 	 * Handle keydown events
 	 */
 	function stage_onKeyDown(e:KeyboardEvent) {
-		// if (e.keyCode == 13) {
-		// 	playVideoByTag(keyBuffer);
-		// 	keyBuffer = "";
-		// } else {
-		// 	keyBuffer += String.fromCharCode(e.charCode);
-		// }
-
 		if (e.ctrlKey) {
 			switch (e.keyCode) {
 				case Keyboard.SPACE:
 					video.stop();
 
 				#if useSerial
+				case Keyboard.D:
+					serialController.traceSerialLines = !serialController.traceSerialLines;
 				case Keyboard.T:
 					serialController.traceSerialDevices();
+				case Keyboard.RIGHTBRACKET:
+					serialController.nextPort();
+				case Keyboard.LEFTBRACKET:
+					serialController.previousPort();
 				#end
 
 				case Keyboard.COMMA:
 					DataController.openConfigJson();
 
-				case Keyboard.H:
-					if (contains(statusText)) {
-						removeChild(statusText);
+				case Keyboard.M:
+					if (contains(message)) {
+						removeChild(message);
 					} else {
-						addChild(statusText);
+						addChild(message);
 					}
 			}
+		} else {
+			message.text += String.fromCharCode(e.charCode);
 		}
 	}
 
 	/**
 	 * Handle resize events
 	 */
-	function stage_resize(e:Event) {}
+	function stage_resize(e:Event) {
+		message.redraw();
+	}
 
 	/**
 	 * 
@@ -264,20 +287,27 @@ class Main extends Sprite {
 		tag = tag.toUpperCase();
 		var millies = System.getTimer();
 		if (millies - tagStartTime < tagTriggerDebounce) {
-			trace(' not ready to triger yet.');
+			showMessage(' not ready to trigger tag ${tag} yet.');
+			trace(' not ready to trigger tag ${tag} yet.');
 			return;
 		}
 		if (DataController.videoTags.exists(tag)) {
-			statusText.text = 'starting video ' + DataController.videoTags.get(tag);
+			showMessage('starting video ' + DataController.videoTags.get(tag));
 			if (video == null) {
 				initVideo();
+			}
+			if (video.isPlaying) {
+				video.stop();
 			}
 			video.load(DataController.videoTags.get(tag));
 			video.play();
 			addChild(video);
 			tagStartTime = millies;
+			if(contains(message)){
+				removeChild(message);
+			}
 		} else {
-			statusText.text = 'no such tagged video $tag';
+			showMessage('no such tagged video $tag');
 			tagStartTime = millies;
 		}
 	}
