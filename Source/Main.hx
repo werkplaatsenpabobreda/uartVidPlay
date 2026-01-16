@@ -15,6 +15,8 @@ import lime.system.System;
 import hxvlc.openfl.Video;
 import controllers.SignalController;
 import controllers.DataController;
+import ui.Message;
+import ui.ConnectDot;
 #if useKeyboard
 import controllers.KeyboardController;
 #end
@@ -51,6 +53,7 @@ class Main extends Sprite {
 	var video:Video;
 	var background:Bitmap;
 	var message:Message;
+	var connectDot:ConnectDot;
 
 	/** 
 	 *
@@ -61,6 +64,7 @@ class Main extends Sprite {
 		DataController.loadConfig();
 		SignalController.tagDetected.add(playVideoByTag);
 		SignalController.tagDeviceError.add(showMessage);
+		SignalController.tagDeviceReady.add(showConnected);
 		SignalController.message.add(showMessage);
 
 		initUI();
@@ -71,12 +75,12 @@ class Main extends Sprite {
 		#end
 
 		#if useSerial
-		SignalController.noSerialDeviceError.add( forceShowMessage);
+		SignalController.noSerialDeviceError.add(forceShowMessage);
 		serialController = SerialController.instance;
-		if(DataController.data.autoDiscoverPort){
+		if (DataController.data.autoDiscoverPort) {
 			trace("autoDiscoverPort");
 			serialController.autoDiscoverPort();
-		}else{
+		} else {
 			if (DataController.data.usePortPath || DataController.data.portPath != "") {
 				serialController.connectSerialPortByPath(DataController.data.portPath);
 				message.text = serialController.storedPortPath;
@@ -112,8 +116,9 @@ class Main extends Sprite {
 			addChild(background);
 		}
 
+		connectDot = new ConnectDot();
 		message = new Message();
-		// addChild(message);
+		addChild(connectDot);
 	}
 
 	/**
@@ -180,12 +185,13 @@ class Main extends Sprite {
 	/**
 	 * [Description]
 	 */
-	function forceShowMessage(s:String){
-		if(message!=null){
+	function forceShowMessage(s:String) {
+		if (message != null) {
 			addChild(message);
 			showMessage(s);
 		}
 	}
+
 	/**
 	 * [Description]
 	 * @param s 
@@ -196,6 +202,21 @@ class Main extends Sprite {
 		} else {
 			trace(s);
 		}
+	}
+
+	/**
+	 * [Description]
+	 */
+	function showConnected() {
+		connectDot.connected = true;
+		if (!contains(connectDot)) {
+			addChild(connectDot);
+		}
+		haxe.Timer.delay(() -> {
+			if (contains(connectDot)) {
+				removeChild(connectDot);
+			}
+		}, 3000);
 	}
 
 	/**
@@ -308,7 +329,7 @@ class Main extends Sprite {
 			video.play();
 			addChild(video);
 			tagStartTime = millies;
-			if(contains(message)){
+			if (contains(message)) {
 				removeChild(message);
 			}
 		} else {
