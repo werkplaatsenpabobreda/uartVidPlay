@@ -16,7 +16,7 @@ class Message extends Sprite {
 	public var text(default, set):String = "";
 
 	private function set_text(t:String):String {
-		if (txMsg != null) {
+		if (txMsg != null && t!=null) {
 			txMsg.text = t;
 		}
 		return this.text = t;
@@ -52,8 +52,8 @@ class Message extends Sprite {
 		txMsg.gridFitType = GridFitType.PIXEL;
 		txMsg.width = stage.stageWidth;
 		txMsg.height = _height - 2 * padding;
-		// txMsg.selectable = false;
-		txMsg.mouseEnabled = false;
+		txMsg.selectable = true;
+		//txMsg.mouseEnabled = false;
 		txMsg.text = text;
 		txMsg.x = padding;
 		txMsg.y = padding;

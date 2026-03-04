@@ -8,7 +8,7 @@ class SerialController {
 
 	public var deviceList:Array<String> = [];
 	public var storedPortPath:String;
-	public var traceSerialLines:Bool = false;
+	public var traceSerialLines:Bool = true;
 	public var connected(default, null):Bool = false;
 
 	var usePortPath:Bool = true;
@@ -20,7 +20,9 @@ class SerialController {
 	var inScanMode:Bool = false;
 	var scanPeriod:Int = 2000;
 
-	private function new() {}
+	private function new() {
+		
+	}
 
 	/**
 	 * output the index and paths of serial devices
@@ -117,7 +119,9 @@ class SerialController {
 			traceSerialDevices();
 		} else {
 			SignalController.message.dispatch('connecting to serialport $devicePath');
+			trace('connecting to serialport $devicePath');
 			serialObj = new hxSerial.Serial(devicePath, 115200, true);
+			serialObj.writeBytes("i\n,");
 			serialConnected = true;
 			storedPortPath = devicePath;
 		}
@@ -199,32 +203,35 @@ class SerialController {
 					var lines:Array<String> = serialBuffer.split("\n");
 
 					// microbit seems to be sending a space (char 32) filled buffer.
-					serialLine = StringTools.trim(lines[0]);
-					if (traceSerialLines) {
-						trace(serialLine);
-					}
-					var uCasedSerialLine = serialLine.toUpperCase();
-					if (uCasedSerialLine == "INITIALIZING"
-						|| uCasedSerialLine == "READY"
-						|| uCasedSerialLine == "DIDN'T FIND PN532 BOARD") {
-						serialBuffer = "";
-						if (uCasedSerialLine == "READY") {
-							connected = true;
-							SignalController.tagDeviceReady.dispatch("READY, waiting for tag");
-							SignalController.message.dispatch("READY, waiting for tag");
-						} else if (uCasedSerialLine == "DIDN'T FIND PN532 BOARD") {
-							SignalController.tagDeviceError.dispatch(serialLine);
-						}else{
-
+					for( l in 0...lines.length){
+						serialLine = StringTools.trim(lines[l]);
+						if(serialLine.length == 0 ) break;
+						if (traceSerialLines) {
+							trace(serialLine);
 						}
-					} else {
-						SignalController.tagDetected.dispatch(serialLine);
+						var uCasedSerialLine = serialLine.toUpperCase();
+						if (uCasedSerialLine == "INITIALIZING"
+							|| uCasedSerialLine == "READY"
+							|| uCasedSerialLine == "DIDN'T FIND PN532 BOARD") {
+							serialBuffer = "";
+							if (uCasedSerialLine == "READY") {
+								connected = true;
+								SignalController.tagDeviceReady.dispatch("READY, waiting for tag");
+								SignalController.message.dispatch("READY, waiting for tag");
+							} else if (uCasedSerialLine == "DIDN'T FIND PN532 BOARD") {
+								SignalController.tagDeviceError.dispatch(serialLine);
+							}else{
 
-						if (noBytesAfterNewline) {
-							serialBuffer = "";
+							}
 						} else {
-							// todo handle bufferRemainder
-							serialBuffer = "";
+							SignalController.tagDetected.dispatch(serialLine);
+
+							if (noBytesAfterNewline) {
+								serialBuffer = "";
+							} else {
+								// todo handle bufferRemainder
+								serialBuffer = "";
+							}
 						}
 					}
 				}

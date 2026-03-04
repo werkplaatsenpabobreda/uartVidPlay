@@ -11,6 +11,7 @@ typedef AppData = {
 	var background:String;
 	var videoTags:Array<VideoTag>;
 	var websocketHost:String;
+	var logSerial:Bool;
 }
 
 typedef VideoTag = {

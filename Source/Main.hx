@@ -82,13 +82,15 @@ class Main extends Sprite {
 		#if useSerial
 		SignalController.noSerialDeviceError.add(forceShowMessage);
 		serialController = SerialController.instance;
+		serialController.traceSerialLines = DataController.data.logSerial;
+
 		if (DataController.data.autoDiscoverPort) {
 			serialController.autoDiscoverPort();
 			addChild(message);
 		} else {
 			if (DataController.data.usePortPath || DataController.data.portPath != "") {
 				serialController.connectSerialPortByPath(DataController.data.portPath);
-				message.text = serialController.storedPortPath;
+				message.text = serialController.storedPortPath!=null?serialController.storedPortPath: " ";
 			} else {
 				serialController.connectSerialPortByIndex(DataController.data.portIndex);
 			}
@@ -337,9 +339,11 @@ class Main extends Sprite {
 		tag = tag.toUpperCase();
 		var millies = System.getTimer();
 		if (millies - tagStartTime < tagTriggerDebounce) {
-			showMessage(' not ready to trigger tag ${tag} yet.');
-			trace(' not ready to trigger tag ${tag} yet.');
+			//showMessage(' not ready to trigger tag ${tag} yet.');
+			// trace(' not ready to trigger tag ${tag} yet.');
 			return;
+		}else{
+			showMessage('tag ${tag}');
 		}
 		if (DataController.videoTags.exists(tag)) {
 			showMessage('starting video ' + DataController.videoTags.get(tag));
