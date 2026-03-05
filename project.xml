@@ -26,6 +26,9 @@
 		<haxedef name="MACOSX_VER" value="26.2"/>
 	</section>
 
+ 	<assets path="dependencies/Windows64" rename="" include="*.ndll" if="windows"/>
+	<assets path="dependencies/Mac64" rename="" include="*.ndll" if="mac"/>
+	
 	<assets path="Assets/data" rename="data" />
 	<assets path="Assets/images" rename="images" />
 
