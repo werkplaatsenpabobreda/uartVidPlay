@@ -66,9 +66,25 @@ class DataController {
 			Path.directory(lime.system.System.applicationStorageDirectory).toString(),
 			"config.json"
 		]);
+		
+		#if windows
+		jsonFile = lime.system.System.applicationStorageDirectory + 'config.json' ;
+		#end
+		
 		trace('opening $jsonFile');
-		if(FileSystem.exists(jsonFile)){
+		if (FileSystem.exists(jsonFile)) {
 			openFileOrDir(jsonFile);
+		}
+	}
+
+	/**
+	 * [Description]
+	 */
+	public static function openConfigDir() {
+		var jsonPath = Path.directory(lime.system.System.applicationStorageDirectory).toString();
+		trace('opening $jsonPath');
+		if (FileSystem.exists(jsonPath)) {
+			openFileOrDir(jsonPath);
 		}
 	}
 

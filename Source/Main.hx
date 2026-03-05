@@ -90,7 +90,7 @@ class Main extends Sprite {
 		} else {
 			if (DataController.data.usePortPath || DataController.data.portPath != "") {
 				serialController.connectSerialPortByPath(DataController.data.portPath);
-				message.text = serialController.storedPortPath!=null?serialController.storedPortPath: " ";
+				message.text = serialController.storedPortPath != null ? serialController.storedPortPath : " ";
 			} else {
 				serialController.connectSerialPortByIndex(DataController.data.portIndex);
 			}
@@ -257,7 +257,11 @@ class Main extends Sprite {
 					video.stop();
 
 				case Keyboard.COMMA:
-					DataController.openConfigJson();
+					if (e.shiftKey) {
+						DataController.openConfigDir();
+					} else {
+						DataController.openConfigJson();
+					}
 				case Keyboard.PERIOD:
 					DataController.saveConfig();
 
@@ -339,10 +343,10 @@ class Main extends Sprite {
 		tag = tag.toUpperCase();
 		var millies = System.getTimer();
 		if (millies - tagStartTime < tagTriggerDebounce) {
-			//showMessage(' not ready to trigger tag ${tag} yet.');
+			// showMessage(' not ready to trigger tag ${tag} yet.');
 			// trace(' not ready to trigger tag ${tag} yet.');
 			return;
-		}else{
+		} else {
 			showMessage('tag ${tag}');
 		}
 		if (DataController.videoTags.exists(tag)) {
